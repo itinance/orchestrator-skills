@@ -33,6 +33,6 @@
 
 ## Install
 
-- Per project: copy `orchestrating-agent-lanes/` into the repo's `.claude/skills/` and commit it.
-- Personal, all projects: copy it into `~/.claude/skills/`.
+- Per project: run `npx orchestrator-skills@<version> install` (or `bunx`) in the repository root, then commit `.claude/skills/orchestrating-agent-lanes/`.
+- Personal, all projects: add `--global`. It installs into `~/.claude/skills/`.
 - The skill loads in a new session, or when the skill list refreshes.

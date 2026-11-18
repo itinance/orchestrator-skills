@@ -32,17 +32,17 @@ This is an opinionated approach, not a general framework. It assumes one human l
 1. **Install the skill.** Use `npx` (Node 18.17 or later) or `bunx`. Both run the same installer.
    - For one project, committed with the repo. Run this in the repository root:
      ```bash
-     npx orchestrator-skills@0.1.0 install
+     npx orchestrator-skills@0.2.0 install
      # or
-     bunx orchestrator-skills@0.1.0 install
+     bunx orchestrator-skills@0.2.0 install
 
      git add .claude/skills/orchestrating-agent-lanes
      ```
    - For all your projects (installs into `~/.claude/skills`):
      ```bash
-     npx orchestrator-skills@0.1.0 install --global
+     npx orchestrator-skills@0.2.0 install --global
      # or
-     bunx orchestrator-skills@0.1.0 install --global
+     bunx orchestrator-skills@0.2.0 install --global
      ```
    The skill is available in the next Claude Code session.
 

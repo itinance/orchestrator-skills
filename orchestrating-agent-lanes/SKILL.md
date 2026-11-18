@@ -1,6 +1,6 @@
 ---
 name: orchestrating-agent-lanes
-description: Use when this session is the orchestrator for a human lead and several Claude lane sessions (one terminal tab and one git worktree per ticket) - assigning tickets to lanes, writing lane briefs, reporting to the lead, handling a lane's question, permission prompt or hook refusal, staging input files for a lane, merging a lane's PR, or updating ticket status.
+description: Use when this session is the orchestrator for a human lead and several Claude lane sessions (one terminal tab and one git worktree per ticket) - assigning tickets to lanes, writing lane briefs, reporting to the lead, naming or picking a lane, handling a lane's question, permission prompt or hook refusal, staging input files for a lane, merging a lane's PR, or updating ticket status.
 ---
 
 # Orchestrating agent lanes
@@ -10,6 +10,15 @@ description: Use when this session is the orchestrator for a human lead and seve
 One orchestrator session talks to the human **lead**. Several **lane** sessions each work on one ticket, in their own terminal tab and their own git worktree. The orchestrator plans, assigns, stages inputs, owns the shared resources, runs the merge gates and keeps the ticket status true. The lead decides, approves and runs the commands only the lead may run.
 
 **Core principle:** every minute a lane waits for something nobody sees (a permission prompt, a missing file, an unanswered question) is lost. The lead does not watch every tab. The orchestrator makes the waiting visible, or prevents it.
+
+## Lane names
+
+A lane is a reusable slot, not a topic. The ticket decides what a lane works on, and the next free lane takes the next ticket, whatever its area.
+
+- **Numbered names for all general lanes:** `lane1`, `lane2`, … `lane6`. Never name a lane after the area of its first ticket (`db`, `app`, `frontend`). A lane called `db` cannot take the next app ticket without confusion.
+- **A role name only for a fixed purpose** that stays the same for every task, for example `review` or `tester`.
+- **Worktrees and branches are named after the ticket** (`app-212-settings`), never after the lane. A lane gets a new worktree for every ticket.
+- **Picking a lane:** the lowest-numbered free lane. Free means: no ticket in the status file, and `ListAgents` shows it idle. No free lane: ask the lead to open the next number, or queue the ticket.
 
 ## The hard rules
 
@@ -22,13 +31,13 @@ One orchestrator session talks to the human **lead**. Several **lane** sessions 
 7. **Merge gates, every time.** Re-read the ticket including replies (a ruling after the last push means hold), green pipeline, a review record for the head commit, merge fallout against the current `origin/main`, browser check for UI or money. Details: `merge-gates.md`.
 8. **Ticket status follows the work.** In Progress at lane start. In Review after the merge (re-check after about 30 s, because integrations may set Done). Done only after the check on the test environment.
 9. **You own the shared resources.** The shared local stack, migration numbers, heavy local runs, the external review allowance, browser sessions. Lanes ask before they use them.
-10. **Keep one status file** of all lanes (ticket, branch, PR, resource holds, migration register, open questions for the lead). Update it at every change of state. It must survive a context reset.
+10. **Keep one status file** of all lanes (lane name, ticket or free, branch, PR, resource holds, migration register, open questions for the lead). Update it at every change of state. It must survive a context reset.
 
 ## Quick reference
 
 | Situation | Do |
 |---|---|
-| New ticket for a lane | Read the ticket fully → In Progress → fresh `origin/main` → worktree + install + hooks → stage inputs → brief (`lane-briefs.md`) → plan first for non-trivial work |
+| New ticket for a lane | Lowest-numbered free lane → read the ticket fully → In Progress → fresh `origin/main` → worktree + install + hooks → stage inputs → brief (`lane-briefs.md`) → plan first for non-trivial work |
 | Lane asks for an outside file | Copy it into its `.scratch/`, send the new path |
 | Lane reports a hook refusal or denial | Tell the lead in one line. Decide: continue inside the rules, or stop |
 | Lane shows `waiting` | Tell the lead at once: lane, prompt, what it was doing |
@@ -50,6 +59,7 @@ One orchestrator session talks to the human **lead**. Several **lane** sessions 
 | "Small fix, the pipeline is green, merge it" | Re-read the ticket first. Rulings arrive after pushes. |
 | "Merged, so the ticket is Done" | In Review until the test environment check. |
 | "I will fill in a sensible default in the lead's draft" | Facts and the lead's rulings only. Ask with a list. |
+| "This ticket is DB work, so call the lane `db`" | Lanes are slots, not topics. Use the next free `laneN`. |
 | "Quick `git stash` to switch" | The stash is shared by all worktrees. Make a WIP commit. |
 | "Five agents in parallel will be faster" | The lead pays for each one. Start what the task needs. |
 

@@ -18,7 +18,7 @@ This is an opinionated approach, not a general framework. It assumes one human l
 | `orchestrating-agent-lanes/lane-briefs.md` | Brief template, message format, handoff file, lane lifecycle |
 | `orchestrating-agent-lanes/merge-gates.md` | Merge gates in order, after-merge steps, ticket status |
 | `orchestrating-agent-lanes/setup-checklist.md` | Decisions for a new project, repository baseline, safety baseline |
-| `tests/pressure-scenarios.md` | Five pressure scenarios with pass criteria, and how to run them with and without the skill |
+| `tests/pressure-scenarios.md` | Six pressure scenarios with pass criteria, and how to run them with and without the skill |
 | `bin/cli.mjs` | The installer behind `npx` / `bunx`. Tests: `npm test` |
 
 ## Requirements
@@ -65,7 +65,7 @@ This is an opinionated approach, not a general framework. It assumes one human l
 ## Use
 
 1. Open one terminal tab for the orchestrator. Tell it that it is the orchestrator for this repository and that you are the lead.
-2. Open one tab per lane and give each a short name, so that the orchestrator can tell them apart in `ListAgents`.
+2. Open one tab per lane and name the lanes by number: `lane1`, `lane2`, … A lane is a reusable slot, not a topic, so the orchestrator can give the next ticket to the next free lane, whatever its area. Give a role name (`review`, `tester`) only to a lane whose purpose never changes.
 3. Give the orchestrator tickets. It reads them, sets up a worktree per lane, stages the inputs, and sends each lane its brief. Then it reports to you only when you must act: a decision, an approval, a command only you may run, or a lane that is waiting on a prompt.
 
 ## Customizing

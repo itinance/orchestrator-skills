@@ -35,11 +35,12 @@ When a lane stops for the day or hands over, it writes `.scratch/handoff.md` in 
 ## Lane lifecycle
 
 ### Start
-1. Read the ticket fully. Set it to In Progress.
-2. Fetch `origin/main`. Create the worktree and branch from it. Never stack on an unmerged branch. If the work depends on one, the lead merges it first.
-3. In the new worktree: install, git hooks. Without them the first commit fails.
-4. Stage the inputs in `.scratch/`.
-5. Send the brief. Non-trivial ticket: plan first, then your OK.
+1. Pick the lowest-numbered free lane (`SKILL.md`, Lane names). Record lane and ticket in the status file.
+2. Read the ticket fully. Set it to In Progress.
+3. Fetch `origin/main`. Create the worktree and branch from it. Never stack on an unmerged branch. If the work depends on one, the lead merges it first.
+4. In the new worktree: install, git hooks. Without them the first commit fails.
+5. Stage the inputs in `.scratch/`.
+6. Send the brief. Non-trivial ticket: plan first, then your OK.
 
 ### During the work
 - Commit at once, in small steps. No `git stash`; make a WIP commit to set work aside.
@@ -54,4 +55,4 @@ When a lane stops for the day or hands over, it writes `.scratch/handoff.md` in 
 ### End
 - Merge gates (`merge-gates.md`), then the merge.
 - Remove the worktree. Archive its `.scratch/` in the main checkout's `.scratch/archive/<ticket>/`.
-- Free lane = next ticket, through the orchestrator.
+- Mark the lane as free in the status file. It keeps its name and takes the next ticket of any area, through the orchestrator.

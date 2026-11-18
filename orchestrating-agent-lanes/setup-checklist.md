@@ -3,6 +3,7 @@
 ## Decide with the lead (do not copy them from another project)
 
 - [ ] Language and tone for the lead. Language for lanes, tickets, commits and PRs.
+- [ ] How many numbered lanes (`lane1` … `laneN`), and which fixed-role lanes, if any (for example `review`, `tester`). No lanes named after an area.
 - [ ] WIP limit per lane. PR size policy (bundle by area or small PRs; the external reviewer may skip PRs above a file limit).
 - [ ] Who creates tickets.
 - [ ] External reviewer yes or no, and its allowance.

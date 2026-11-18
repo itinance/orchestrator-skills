@@ -7,13 +7,13 @@ The limits come first, in bold, and say that a breach stops the task. Limits tha
 ```
 <orchestrator> → <lane>: <ticket id> <title>
 LIMITS (a breach stops the task):
-- Work only in <absolute worktree path>. Inputs are in .scratch/<…>.
+- Worktree: <new: create one for this ticket with EnterWorktree from a freshly fetched origin/main, report its path, then wait for my inputs | resume: <existing worktree path>>. Work only in that worktree.
 - <allowed shell programs, or the forbidden host programs>
 - On the first permission prompt, denial or hook refusal: stop and tell me in one line. Do not try another command.
 - Only origin/main and your own worktree count as truth. Never read another session's branch or worktree.
 Goal: <one or two sentences>
 Ticket: <id>. Read all comments. Rulings so far: <list or "none">
-Inputs: <.scratch paths only>
+Inputs: <.scratch paths only; for a new worktree I send them after you report its path>
 Scope: <in>. Out of scope: <out>
 Done when: <checks>
 First deliverable: <plan to me | draft PR>. No code before my OK on the plan.
@@ -35,12 +35,15 @@ When a lane stops for the day or hands over, it writes `.scratch/handoff.md` in 
 ## Lane lifecycle
 
 ### Start
-1. Pick the lowest-numbered free lane (`SKILL.md`, Lane names). Record lane and ticket in the status file.
-2. Read the ticket fully. Set it to In Progress.
-3. Fetch `origin/main`. Create the worktree and branch from it. Never stack on an unmerged branch. If the work depends on one, the lead merges it first.
-4. In the new worktree: install, git hooks. Without them the first commit fails.
-5. Stage the inputs in `.scratch/`.
-6. Send the brief. Non-trivial ticket: plan first, then your OK.
+1. Pick the lowest-numbered free lane (`SKILL.md`, Lanes, names and worktrees). Record lane and ticket in the status file.
+2. Read the ticket fully. Set it to In Progress. Collect the inputs in your own `.scratch/`.
+3. Send the brief. It names the ticket, not a path that does not exist yet.
+4. The lane fetches `origin/main` and creates the worktree from it with `EnterWorktree`. It names the branch after the ticket. Never stack on an unmerged branch. If the work depends on one, the lead merges it first.
+5. In the new worktree, the lane runs install and sets up the git hooks. Without them the first commit fails.
+6. The lane reports the worktree path. Copy the inputs into its `.scratch/` and send the paths.
+7. Non-trivial ticket: plan first, then your OK.
+
+**Resume** a ticket that already has a worktree: the brief names its path. The lane leaves its current worktree with `ExitWorktree`. That returns it to its previous directory, which can be another worktree. It checks its current directory and calls `EnterWorktree` with the path only if it is not in that worktree yet. It never reaches into another worktree with `cd`, `git -C` or absolute paths.
 
 ### During the work
 - Commit at once, in small steps. No `git stash`; make a WIP commit to set work aside.
@@ -54,5 +57,7 @@ When a lane stops for the day or hands over, it writes `.scratch/handoff.md` in 
 
 ### End
 - Merge gates (`merge-gates.md`), then the merge.
-- Remove the worktree. Archive its `.scratch/` in the main checkout's `.scratch/archive/<ticket>/`.
-- Mark the lane as free in the status file. It keeps its name and takes the next ticket of any area, through the orchestrator.
+- The lane reports "merged + tree clean".
+- Archive the worktree's `.scratch/` in the main checkout's `.scratch/archive/<ticket>/`.
+- The lane leaves the merged worktree with `ExitWorktree` and checks where it landed: its previous directory, which can be another worktree. Then the orchestrator removes the merged worktree (`git worktree remove`).
+- Mark the lane as free in the status file. The lane keeps its tab and name, and takes the next ticket of any area, through the orchestrator. It creates the worktree for that ticket with `EnterWorktree`.

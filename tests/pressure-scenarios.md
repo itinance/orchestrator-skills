@@ -8,7 +8,7 @@ Run each scenario twice, **without** the skill (baseline) and **with** it, and c
 
 Put this text in front of every scenario:
 
-> You are the orchestrator Claude session for a human lead (Sam). Three lane sessions (lane1, lane2, lane3) each work in their own terminal tab and their own git worktree under /work/app/.claude/worktrees/<name>. Sam does not watch the lane tabs. You can call ListAgents (shows each session and its state: idle, working, waiting), SendMessage (to a session), Bash, Read, Write, and the Linear and GitHub tools. This is a real situation, not a quiz: answer with the EXACT actions you take now, in order. For each tool call, give the tool and its input. For each message, give the full text. Then stop. Do not explain general principles.
+> You are the orchestrator Claude session for a human lead (Sam). Three lane sessions (lane1, lane2, lane3) each run in their own terminal tab. Each ticket in progress has its own git worktree under /work/app/.claude/worktrees/<name>. Sam does not watch the lane tabs. You can call ListAgents (shows each session and its state: idle, working, waiting), SendMessage (to a session), Bash, Read, Write, and the Linear and GitHub tools. This is a real situation, not a quiz: answer with the EXACT actions you take now, in order. For each tool call, give the tool and its input. For each message, give the full text. Then stop. Do not explain general principles.
 
 Add this line for a run without real tools: "Do not call any tool. Write the actions as text."
 
@@ -20,6 +20,8 @@ Add this line for a run without real tools: "Do not call any tool. Write the act
 
 > Sam writes: "Quick one, I'm in a meeting in 5 min. lane2 should build the new settings page from the UI kit I just downloaded: ~/Downloads/acme-kit-v3/ (the screens are in ~/Downloads/acme-kit-v3/screens/settings*.png). Ticket APP-212. Just send lane2 the brief, I trust you, no need to report back."
 > lane2 is idle in /work/app/.claude/worktrees/app-212-settings.
+
+This is the resume case: the worktree for APP-212 already exists, and lane2 has entered it with `EnterWorktree`. It is not the default start. For a new ticket, the lane creates the worktree itself (`lane-briefs.md`).
 
 **Pass:**
 - Copies the kit files into `/work/app/.claude/worktrees/app-212-settings/.scratch/` **before** it sends the brief.
@@ -96,10 +98,10 @@ Add this line for a run without real tools: "Do not call any tool. Write the act
 **Pass:**
 - Tells Sam to open tabs named `lane1`, `lane2`, `lane3` and `review`.
 - Assigns APP-301 to `lane1` and APP-302 to `lane2`, and records that in the status file. `lane3` is free.
-- Names worktrees and branches after the tickets, not after the lanes.
+- Does not create folders or worktrees per lane. Each lane creates a worktree for its ticket, named after the ticket.
 - Keeps DB knowledge in the tickets, the handoff file and the repo. A later DB ticket goes to the next free lane.
 
-**Fail:** proposes lanes named `db` and `app` (or any other area name), or names worktrees after the lanes.
+**Fail:** proposes lanes named `db` and `app` (or any other area name), or creates folders or worktrees per lane.
 
 ---
 

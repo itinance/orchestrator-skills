@@ -17,7 +17,7 @@
 ## After the merge
 
 - Ticket to **In Review**. Re-check after about 30 s: the GitHub integration may have set Done.
-- Remove the lane's worktree, archive its `.scratch/`.
+- Archive the ticket worktree's `.scratch/`, then remove the worktree.
 - Update the status file.
 
 ## Ticket status

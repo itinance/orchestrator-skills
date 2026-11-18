@@ -1,28 +1,32 @@
 ---
 name: orchestrating-agent-lanes
-description: Use when this session is the orchestrator for a human lead and several Claude lane sessions (one terminal tab and one git worktree per ticket) - assigning tickets to lanes, writing lane briefs, reporting to the lead, naming or picking a lane, handling a lane's question, permission prompt or hook refusal, staging input files for a lane, merging a lane's PR, or updating ticket status.
+description: Use when this session is the orchestrator for a human lead and several Claude lane sessions (one terminal tab per lane, one git worktree per ticket) - assigning tickets to lanes, writing lane briefs, reporting to the lead, naming or picking a lane, handling a lane's question, permission prompt or hook refusal, staging input files for a lane, merging a lane's PR, or updating ticket status.
 ---
 
 # Orchestrating agent lanes
 
 ## Overview
 
-One orchestrator session talks to the human **lead**. Several **lane** sessions each work on one ticket, in their own terminal tab and their own git worktree. The orchestrator plans, assigns, stages inputs, owns the shared resources, runs the merge gates and keeps the ticket status true. The lead decides, approves and runs the commands only the lead may run.
+One orchestrator session talks to the human **lead**. Several **lane** sessions are long-lived terminal tabs that work through the orchestrator's instructions, one ticket at a time. Each ticket gets its own git worktree. The orchestrator plans, assigns, stages inputs, owns the shared resources, runs the merge gates and keeps the ticket status true. The lead decides, approves and runs the commands only the lead may run.
 
 **Core principle:** every minute a lane waits for something nobody sees (a permission prompt, a missing file, an unanswered question) is lost. The lead does not watch every tab. The orchestrator makes the waiting visible, or prevents it.
 
-## Lane names
+## Lanes, names and worktrees
 
 A lane is a reusable slot, not a topic. The ticket decides what a lane works on, and the next free lane takes the next ticket, whatever its area.
 
 - **Numbered names for all general lanes:** `lane1`, `lane2`, … `lane6`. Never name a lane after the area of its first ticket (`db`, `app`, `frontend`). A lane called `db` cannot take the next app ticket without confusion.
 - **A role name only for a fixed purpose** that stays the same for every task, for example `review` or `tester`.
-- **Worktrees and branches are named after the ticket** (`app-212-settings`), never after the lane. A lane gets a new worktree for every ticket.
+- **A lane is a tab, not a folder.** It starts in the main checkout (the repository root, on a clean `main`). It has no worktree and no folder of its own until it gets a ticket. Never create folders or worktrees per lane.
+- **A worktree belongs to a ticket.** At ticket start the lane creates it itself, with Claude Code's `EnterWorktree` tool, from a freshly fetched `origin/main` (it goes under `.claude/worktrees/`). It names the branch after the ticket, in the project's scheme (for example `<user>/<ticket>-<slug>`), and reports the worktree path. The orchestrator creates a worktree only for its own work (deploy, hotfix), the same way.
+- **A lane keeps its tab and name through many tickets.** After the merge it leaves the merged worktree with `ExitWorktree`, and creates the worktree for its next ticket with `EnterWorktree`.
+- **Resume:** the brief names the existing worktree path. The lane leaves its current worktree with `ExitWorktree`. That returns it to its previous directory, which can be another worktree. The lane checks its current directory and calls `EnterWorktree` with the path only if it is not in that worktree yet. A session never reaches into another worktree with `cd`, `git -C` or absolute paths. The isolation hook refuses that.
+- **Reading only inside the own worktree** needs a PreToolUse hook that refuses commands aimed at another worktree (for example `git -C <other worktree>`). Without such a hook, the rule is discipline only (`setup-checklist.md`).
 - **Picking a lane:** the lowest-numbered free lane. Free means: no ticket in the status file, and `ListAgents` shows it idle. No free lane: ask the lead to open the next number, or queue the ticket.
 
 ## The hard rules
 
-1. **Stage inputs before the lane starts.** A lane reads only inside its own worktree. Copy every outside file it needs (UI kits, design exports, specs from Downloads, notes from the main checkout) into `<worktree>/.scratch/` first. Briefs name only `.scratch` paths. Before you send a brief, search it for `~/`, `/Users/` and "main checkout", copy each hit, and replace the path. Things that are needed again and again belong in the repo (for example `design/`).
+1. **Stage inputs before the lane starts the work.** A lane reads only inside its own worktree. Collect every outside file it needs (UI kits, design exports, specs from Downloads, notes from the main checkout) in your own `.scratch/` first (for example `.scratch/kits/<name>/`). When the lane reports its new worktree path, copy them into `<worktree>/.scratch/` and send the paths. Briefs name only `.scratch` paths. Before you send a brief, search it for `~/`, `/Users/` and "main checkout", copy each hit, and replace the path. Things that are needed again and again belong in the repo (for example `design/`).
 2. **`ListAgents` first.** It is the first tool call of every turn in which you write to the lead. Any lane shown as `waiting` holds a prompt only the lead can answer. Name it in one line, with what you told it to do.
 3. **Talk to the lead only when the lead must act.** One step or one question per message. Real status first: done and verified, failed (with the error), skipped. Say when a deliverable does not exist yet.
 4. **No invented assumptions in the lead's name.** Drafts contain code facts, ticket facts and the lead's rulings. Your own proposals go to the lead as a list first. Record every ruling on the ticket at once (Q1, Q2, … with the reason).
@@ -37,7 +41,8 @@ A lane is a reusable slot, not a topic. The ticket decides what a lane works on,
 
 | Situation | Do |
 |---|---|
-| New ticket for a lane | Lowest-numbered free lane → read the ticket fully → In Progress → fresh `origin/main` → worktree + install + hooks → stage inputs → brief (`lane-briefs.md`) → plan first for non-trivial work |
+| New ticket for a lane | Lowest-numbered free lane → read the ticket fully → In Progress → brief (`lane-briefs.md`) → lane creates the worktree from fresh `origin/main` + install + hooks, reports the path → copy the inputs into its `.scratch/` → plan first for non-trivial work |
+| Resume a ticket in an existing worktree | The brief names the worktree path. The lane runs `ExitWorktree`, checks its current directory, and runs `EnterWorktree` with the path only if it is not there yet |
 | Lane asks for an outside file | Copy it into its `.scratch/`, send the new path |
 | Lane reports a hook refusal or denial | Tell the lead in one line. Decide: continue inside the rules, or stop |
 | Lane shows `waiting` | Tell the lead at once: lane, prompt, what it was doing |
@@ -60,6 +65,7 @@ A lane is a reusable slot, not a topic. The ticket decides what a lane works on,
 | "Merged, so the ticket is Done" | In Review until the test environment check. |
 | "I will fill in a sensible default in the lead's draft" | Facts and the lead's rulings only. Ask with a list. |
 | "This ticket is DB work, so call the lane `db`" | Lanes are slots, not topics. Use the next free `laneN`. |
+| "Each lane needs its own folder" | A lane is a tab. Worktrees belong to tickets, and the lane creates one at ticket start. |
 | "Quick `git stash` to switch" | The stash is shared by all worktrees. Make a WIP commit. |
 | "Five agents in parallel will be faster" | The lead pays for each one. Start what the task needs. |
 

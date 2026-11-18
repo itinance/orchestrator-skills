@@ -1,12 +1,14 @@
 # orchestrating-agent-lanes
 
-A Claude Code skill for running one **orchestrator** session that leads several **lane** sessions for one human **lead**.
+An opinionated Claude Code skill for running one **orchestrator** session that leads several **lane** sessions for one human **lead**.
 
 - Each lane works on one ticket, in its own terminal tab and its own git worktree.
 - The orchestrator talks to the lead, assigns tickets, writes the lane briefs and stages the input files.
 - It also owns the shared resources, runs the merge gates and keeps the ticket status true.
 
 The rules come from several months of daily multi-lane work on a real product. Most of them exist because something went wrong without them: a lane waited on a permission prompt that nobody saw, a merge ignored a late ruling, or a ticket was called Done before anyone checked it.
+
+This is an opinionated approach, not a general framework. It assumes one human lead, one ticket per lane, a git worktree per lane, and merge gates that nobody skips. It works best when you adopt these choices as a whole. If they do not fit your team, take the parts that do, and change the rest in your own copy.
 
 ## What is in it
 

@@ -1,0 +1,37 @@
+{
+  "name": "orchestrator-skills",
+  "version": "0.1.0",
+  "description": "Claude Code skills for one orchestrator session that leads several lane sessions, one git worktree per ticket.",
+  "keywords": [
+    "claude-code",
+    "claude",
+    "skills",
+    "agent-skills",
+    "orchestrator",
+    "git-worktree"
+  ],
+  "license": "MIT",
+  "author": "Hagen Hübel",
+  "homepage": "https://github.com/itinance/orchestrator-skills#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/itinance/orchestrator-skills.git"
+  },
+  "bugs": {
+    "url": "https://github.com/itinance/orchestrator-skills/issues"
+  },
+  "type": "module",
+  "bin": {
+    "orchestrator-skills": "bin/cli.mjs"
+  },
+  "files": [
+    "bin/",
+    "orchestrating-agent-lanes/"
+  ],
+  "engines": {
+    "node": ">=18.17"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.mjs"
+  }
+}

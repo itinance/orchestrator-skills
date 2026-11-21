@@ -1,0 +1,4 @@
+{"type":"custom-title","customTitle":"lane4","sessionId":"s"}
+{"type":"user","isSidechain":false,"message":{"role":"user","content":"CANARY-CONTENT-MUST-NOT-LEAK"},"timestamp":"2026-11-21T09:30:00.000Z","sessionId":"s"}
+{"type":"assistant","isSidechain":false,"isApiErrorMessage":true,"error":"server_error","apiError":"stream_idle_timeout","message":{"role":"assistant","model":"<synthetic>","content":[{"type":"text","text":"API Error: CANARY-CONTENT-MUST-NOT-LEAK"}]},"timestamp":"2026-11-21T09:32:00.000Z","sessionId":"s"}
+{"type":"system","subt

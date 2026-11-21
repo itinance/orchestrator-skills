@@ -1,0 +1,3 @@
+{"type":"agent-name","agentName":"lane5","sessionId":"s"}
+{"type":"user","isSidechain":false,"message":{"role":"user","content":"CANARY-CONTENT-MUST-NOT-LEAK"},"timestamp":"2026-11-21T09:30:00.000Z","sessionId":"s"}
+{"type":"assistant","isSidechain":false,"isApiErrorMessage":true,"error":"server_error","message":{"role":"assistant","model":"<synthetic>","content":[{"type":"text","text":"API Error: CANARY-CONTENT-MUST-NOT-LEAK"}]},"timestamp":"CANARY-CONTENT-MUST-NOT-LEAK","sessionId":"s"}

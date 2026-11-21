@@ -20,6 +20,7 @@ help:
 
 test:
 	npm test
+	bash tests/watchdog.test.sh
 
 check-clean:
 	@test -z "$$(git status --porcelain)" || { echo "Working tree not clean. Commit or stash first."; exit 1; }

@@ -1,0 +1,4 @@
+{"type":"agent-name","agentName":"orchestrator","sessionId":"s"}
+{"type":"user","isSidechain":false,"message":{"role":"user","content":"CANARY-CONTENT-MUST-NOT-LEAK"},"timestamp":"2026-11-21T09:20:00.000Z","sessionId":"s"}
+{"type":"assistant","isSidechain":false,"isApiErrorMessage":true,"error":"rate_limit","apiError":"usage_limit_reached","message":{"role":"assistant","model":"<synthetic>","content":[{"type":"text","text":"API Error: CANARY-CONTENT-MUST-NOT-LEAK"}]},"timestamp":"2026-11-21T09:25:00.000Z","sessionId":"s"}
+{"type":"system","subtype":"informational","content":"CANARY-CONTENT-MUST-NOT-LEAK","timestamp":"2026-11-21T09:25:01.000Z"}

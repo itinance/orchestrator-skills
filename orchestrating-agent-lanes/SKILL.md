@@ -41,6 +41,7 @@ A lane is a reusable slot, not a topic. The ticket decides what a lane works on,
 
 | Situation | Do |
 |---|---|
+| Your session starts or resumes, and the project uses the session watchdog | Read `~/.claude/session-watchdog/heartbeat`. Missing, or older than 15 min (`WATCHDOG_HEARTBEAT_MAX_AGE_MINUTES`): tell the lead that the watchdog is not running |
 | New ticket for a lane | Lowest-numbered free lane → read the ticket fully → In Progress → brief (`lane-briefs.md`) → lane creates the worktree from fresh `origin/main` + install + hooks, reports the path → copy the inputs into its `.scratch/` → plan first for non-trivial work |
 | Resume a ticket in an existing worktree | The brief names the worktree path. The lane runs `ExitWorktree`, checks its current directory, and runs `EnterWorktree` with the path only if it is not there yet |
 | Lane asks for an outside file | Copy it into its `.scratch/`, send the new path |

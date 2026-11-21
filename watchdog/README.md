@@ -1,0 +1,79 @@
+# Session watchdog
+
+When the network drops (DNS error, Wi-Fi gone), each Claude Code session retries, then stops with "API error" and waits for a human. The orchestrator stops the same way, so nobody notices: eight quiet tabs look like a calm day. The watchdog runs outside the agents and notices the silence.
+
+Phase 1 detects and notifies. It does not restart anything.
+
+## What it does
+
+Every 5 minutes, a launchd user agent runs `session-watchdog.sh`:
+
+1. **Detect.** It reads the end of each transcript under `~/.claude/projects/*/` that changed in the last 24 hours. A session counts as **stalled** when the last user or assistant entry of its main conversation is an API error, and the transcript has not changed for more than 10 minutes. It also checks whether `api.anthropic.com` resolves, so that the notice can say "network down".
+2. **Notify.** A macOS notification names the stalled sessions and the time of the earliest error, for example `lane6, orchestrator: API error since 09:32`. One notice per stall. A session notifies again only after it recovered and stalled again.
+3. **Heartbeat.** Every run writes the current UTC time to `~/.claude/session-watchdog/heartbeat`. The orchestrator skill reads it when its session starts or resumes, and tells the lead when the watchdog is not running.
+
+It fails closed and loud. If it cannot read the transcripts (folder missing or unreadable, jq missing, an invalid setting, unreadable files), it shows "watchdog cannot read sessions", once per failure, and logs it on every run.
+
+## What it reads
+
+Transcripts hold client data. The script never prints, logs or copies their content. It reads only these fields of a transcript entry:
+
+| Field | Use |
+|---|---|
+| `type` | `user` / `assistant` entries are the conversation. Everything else (`system`, `queue-operation`, `last-prompt`, …) is skipped. |
+| `isSidechain` | Subagent entries are skipped. |
+| `isApiErrorMessage` | `true` marks an API error entry (an `assistant` entry written by Claude Code itself). |
+| `timestamp` | Time of the error, for "since 09:32", and the key for "one notice per stall". |
+| `apiError`, `error` | Kept only when they are a short lowercase code (for example `connection_failed`, `server_error`). |
+| `agentName` (`agent-name` entry), `customTitle` (`custom-title` entry) | The session name in the notice. Without one: `session <first 8 characters of the session id>`. `ai-title` is never used, because it summarizes the conversation. |
+
+Checked against real transcripts: after an API error, Claude Code often writes more entries (`system/turn_duration`, `system/informational`, `queue-operation`, `last-prompt`, `custom-title`, …). That is why the watchdog looks at the last user or assistant entry, not at the last line.
+
+## Install
+
+Requirements: macOS, `bash`, `jq` (for example `brew install jq`). No other dependencies.
+
+```bash
+bash watchdog/install.sh            # install or update, and start
+bash watchdog/install.sh print      # show the launchd plist, change nothing
+bash watchdog/install.sh uninstall  # stop and remove (the state folder stays)
+```
+
+The installer copies the script to `~/.claude/session-watchdog/bin/`, writes the config file with the defaults if it does not exist, and loads `~/Library/LaunchAgents/orchestrator-skills.session-watchdog.plist`. The plist holds the absolute path of `jq`, because launchd starts agents with a minimal `PATH`.
+
+## Settings
+
+In `~/.claude/session-watchdog/config` (`KEY=VALUE`, parsed, never sourced). An environment variable of the same name takes precedence.
+
+| Setting | Default | Read by |
+|---|---|---|
+| `WATCHDOG_INTERVAL_MINUTES` | 5 | installer (run it again after a change) |
+| `WATCHDOG_STALL_MINUTES` | 10 | script |
+| `WATCHDOG_HEARTBEAT_MAX_AGE_MINUTES` | 15 | orchestrator skill |
+| `WATCHDOG_TRANSCRIPT_ROOT` | `~/.claude/projects` | script |
+| `WATCHDOG_WINDOW_HOURS` | 24 | script |
+| `WATCHDOG_DNS_HOST` | `api.anthropic.com` | script |
+| `WATCHDOG_TAIL_LINES` | 300 | script |
+| `WATCHDOG_STATE_DIR` | `~/.claude/session-watchdog` | both (environment only) |
+
+## Files in the state folder
+
+| File | Content |
+|---|---|
+| `heartbeat` | UTC time of the last run |
+| `notified` | Keys of the stalls and failures already notified (transcript path and error time). No content. |
+| `config` | Settings |
+| `watchdog.log` | The watchdog's own failure messages |
+
+## Tests
+
+```bash
+bash tests/watchdog.test.sh
+```
+
+Synthetic fixture tails in `tests/fixtures/watchdog/` for stalled, healthy, recovered, re-stalled, network down, subagent error, broken last line and missing name. Their content fields hold a canary string, and the tests check that it never appears in a notice, log or state file.
+
+## Known limits
+
+- A session whose tab was closed right after an API error counts as stalled too. It notifies once, then stays quiet.
+- The DNS check only qualifies the notice. A DNS failure without a stalled session shows nothing.

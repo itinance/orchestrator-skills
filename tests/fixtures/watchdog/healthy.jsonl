@@ -1,0 +1,4 @@
+{"type":"agent-name","agentName":"lane1","sessionId":"s"}
+{"type":"user","isSidechain":false,"message":{"role":"user","content":"CANARY-CONTENT-MUST-NOT-LEAK"},"timestamp":"2026-11-21T09:00:00.000Z","sessionId":"s"}
+{"type":"assistant","isSidechain":false,"message":{"role":"assistant","model":"m","content":[{"type":"text","text":"CANARY-CONTENT-MUST-NOT-LEAK"}]},"timestamp":"2026-11-21T09:01:00.000Z","sessionId":"s"}
+{"type":"system","subtype":"turn_duration","durationMs":1,"timestamp":"2026-11-21T09:01:01.000Z"}

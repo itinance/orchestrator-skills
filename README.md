@@ -20,6 +20,7 @@ This is an opinionated approach, not a general framework. It assumes one human l
 | `orchestrating-agent-lanes/merge-gates.md` | Merge gates in order, after-merge steps, ticket status |
 | `orchestrating-agent-lanes/setup-checklist.md` | Decisions for a new project, repository baseline, safety baseline |
 | `tests/pressure-scenarios.md` | Six pressure scenarios with pass criteria, and how to run them with and without the skill |
+| `watchdog/` | Session watchdog for macOS: notices sessions that stopped on an API error. See `watchdog/README.md` |
 | `bin/cli.mjs` | The installer behind `npx` / `bunx`. Tests: `npm test` |
 | `Makefile` | Release workflow: `make release BUMP=minor`, then `make publish OTP=<code>` |
 

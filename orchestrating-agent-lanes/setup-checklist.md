@@ -12,6 +12,7 @@
 - [ ] Where the orchestrator's status file lives. Claude memory is personal and not in git. A gitignored `.scratch/orchestrator/` file in the main checkout is visible on the machine.
 - [ ] Commands only the lead runs: infrastructure apply, deploys, secrets, messages to other people.
 - [ ] Host interpreters allowed, or containers only (then a PreToolUse hook that refuses them).
+- [ ] Session watchdog yes or no (`watchdog/README.md` in the skill repo). It notices sessions that stopped on an API error, for example when the network drops.
 - [ ] Where design inputs live: committed in the repo (recommended) or staged per lane.
 
 ## Repository baseline

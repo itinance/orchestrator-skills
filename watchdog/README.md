@@ -58,9 +58,15 @@ The watchdog shows its notices with `osascript`, the same way as this test:
 osascript -e 'display notification "Test" with title "Session watchdog"'
 ```
 
-- **No banner, but the entry is in Notification Center:** the app's alert style is "None". Open *System Settings → Notifications*, select the app the test notice came from (usually *Script Editor*), and set the style to **Alerts**. Alerts stay on screen until you close them, so a stall is not missed while you are away. *Banners* disappear after a few seconds.
-- **Nothing at all:** turn on *Allow notifications* for that app.
-- **A Focus mode (Do Not Disturb, Work, …)** holds back banners too. Allow the app in that Focus, or accept that notices wait in Notification Center.
+Open *System Settings → Notifications* and select the app the test notice came from (usually *Script Editor*):
+
+- *Allow notifications* on, and *Desktop* ticked. Without *Desktop*, notices only go to Notification Centre.
+- *Alert Style* **Persistent** (older macOS: *Alerts*). The notice stays on screen until you close it, so a stall is not missed while you are away. *Temporary* (older: *Banners*) disappears after a few seconds.
+
+If the settings are right and the notice still only lands in Notification Centre, macOS is holding back banners:
+
+- **A Focus mode** (Do Not Disturb, Work, …) is on. Check Control Centre. Allow the app in that Focus, or turn the Focus off.
+- **Screen sharing, mirroring or a full-screen app** also holds back banners.
 
 Run the test again until the notice appears on screen.
 

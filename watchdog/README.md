@@ -61,8 +61,11 @@ In `~/.claude/session-watchdog/config` (`KEY=VALUE`, parsed, never sourced). An 
 | `WATCHDOG_WINDOW_HOURS` | 24 | script |
 | `WATCHDOG_DNS_HOST` | `api.anthropic.com` | script |
 | `WATCHDOG_TAIL_LINES` | 300 | script |
+| `WATCHDOG_TAIL_BYTES` | 2000000 | script (at most this many bytes of the end, because a line with an image can be megabytes) |
 | `WATCHDOG_LOG_MAX_LINES` | 500 | script (cuts `watchdog.log` to this length) |
 | `WATCHDOG_STATE_DIR` | `~/.claude/session-watchdog` | both (environment only) |
+
+The tests use hooks that write notices to a file instead of showing them (`WATCHDOG_NOTIFY_LOG`), make a notice fail, or fix the DNS result. The script accepts them only together with `WATCHDOG_TEST=1`, so a stray environment variable cannot silence the real alerts.
 
 ## Files in the state folder
 
@@ -87,3 +90,5 @@ Synthetic fixture tails in `tests/fixtures/watchdog/` for stalled, healthy, reco
 
 - A session whose tab was closed right after an API error counts as stalled too. It notifies once, then stays quiet.
 - The DNS check only qualifies the notice. A DNS failure without a stalled session shows nothing.
+- The DNS check uses `/usr/bin/host`, which reads `resolv.conf` and bypasses the macOS resolver. With a VPN or split DNS, the "network down" part of the title can be wrong in either direction (not verified). The stall itself is detected from the transcripts either way.
+- A notice names only the sessions that stalled since the last notice, with the earliest of their error times. Sessions that are still stalled from an earlier notice are not repeated.

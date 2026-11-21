@@ -45,7 +45,7 @@ place() {
 }
 
 run() { # extra env assignments as arguments
-  env WATCHDOG_STATE_DIR="$STATE" WATCHDOG_TRANSCRIPT_ROOT="$ROOT" \
+  env WATCHDOG_TEST=1 WATCHDOG_STATE_DIR="$STATE" WATCHDOG_TRANSCRIPT_ROOT="$ROOT" \
     WATCHDOG_NOTIFY_LOG="$NOTICES" WATCHDOG_DNS_OK=1 "$@" \
     bash "$SCRIPT" >"$SB/stdout" 2>"$SB/stderr"
   RC=$?
@@ -250,7 +250,17 @@ run WATCHDOG_LOG_MAX_LINES=100
 # S4: uninstall without jq and with a bad interval; install with a fake launchctl
 new_sandbox installer
 FAKE="$SB/launchctl"
-printf '#!/bin/bash\necho "$@" >>"$0.calls"\n' >"$FAKE"
+# Fake launchctl: the agent is already gone (print fails), and the first
+# bootstrap fails like an asynchronous bootout would make it.
+cat >"$FAKE" <<'EOF'
+#!/bin/bash
+echo "$@" >>"$0.calls"
+case $1 in
+  print) exit 1 ;;
+  bootstrap) [ "$(grep -c '^bootstrap' "$0.calls")" -ge 2 ] || exit 5 ;;
+esac
+exit 0
+EOF
 chmod +x "$FAKE"
 mkdir -p "$SB/home/Library/LaunchAgents"
 env -i PATH=/usr/bin:/bin HOME="$SB/home" WATCHDOG_STATE_DIR="$STATE" WATCHDOG_LAUNCHCTL="$FAKE" WATCHDOG_INTERVAL_MINUTES=abc \
@@ -262,6 +272,32 @@ if [ -s "$SB/home/Library/LaunchAgents/orchestrator-skills.session-watchdog.plis
 else
   not_ok "install: plist, script copy, config, bootstrap call" "$(cat "$SB/stderr")"
 fi
+[ "$(grep -c '^bootstrap' "$FAKE.calls")" = 2 ] && ok "install: a failed bootstrap is retried once" || not_ok "install: a failed bootstrap is retried once" "$(cat "$FAKE.calls")"
+
+# --- review round 2
+
+# C1: a new stall names only the new session, with its own time
+new_sandbox c1
+place stalled-earlier 11111111-2222 25
+run
+place stalled 22222222-2222 20
+run
+expect_notices "C1: two stalls at different times, two notices" 2
+expect_last "C1: the second notice names only the new stall" $'Claude sessions stalled\tlane6: API error since 09:32'
+
+# C6: a state file that cannot be written is loud
+new_sandbox c6
+place stalled 33333333-2222 20
+mkdir -p "$STATE/notified.tmp"
+run
+expect_last "C6: failed state write: loud notice" $'Session watchdog\twatchdog cannot save its state in '"$STATE"
+[ "$RC" = 1 ] && ok "C6: failed state write: exit 1" || not_ok "C6: failed state write: exit 1" "rc=$RC"
+
+# C8: a byte window that cuts lines still finds the stall
+new_sandbox c8
+place stalled 44444444-2222 20
+run WATCHDOG_TAIL_BYTES=200
+expect_last "C8: small byte window, cut first line, stall still found" $'Claude sessions stalled\tlane6: API error since 09:32'
 
 # --- installer renders a valid launchd plist
 if [ -x /usr/bin/plutil ]; then

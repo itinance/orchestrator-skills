@@ -18,6 +18,7 @@
 #   WATCHDOG_WINDOW_HOURS         24   only transcripts changed in this window
 #   WATCHDOG_DNS_HOST             api.anthropic.com
 #   WATCHDOG_TAIL_LINES           300  lines read from the end of a transcript
+#   WATCHDOG_TAIL_BYTES           2000000  at most this many bytes of that end
 #   WATCHDOG_LOG_MAX_LINES        500  watchdog.log is cut to this length
 #   WATCHDOG_JQ                   jq on PATH
 # The config file is $WATCHDOG_STATE_DIR/config, KEY=VALUE lines. It is parsed,
@@ -32,11 +33,17 @@ NOTIFIED="$STATE_DIR/notified"
 HEARTBEAT="$STATE_DIR/heartbeat"
 LOGFILE="$STATE_DIR/watchdog.log"
 
-# Test hooks: write notices to a file instead of macOS, make a notice fail,
-# and fix the DNS result.
-NOTIFY_LOG="${WATCHDOG_NOTIFY_LOG:-}"
-NOTIFY_FAIL="${WATCHDOG_NOTIFY_FAIL:-}"
-DNS_OVERRIDE="${WATCHDOG_DNS_OK:-}"
+# Test hooks, active only with WATCHDOG_TEST=1: write notices to a file
+# instead of macOS (this silences the real alerts), make a notice fail, and fix
+# the DNS result. Without WATCHDOG_TEST=1 they are ignored.
+NOTIFY_LOG=""
+NOTIFY_FAIL=""
+DNS_OVERRIDE=""
+if [ "${WATCHDOG_TEST:-}" = 1 ]; then
+  NOTIFY_LOG="${WATCHDOG_NOTIFY_LOG:-}"
+  NOTIFY_FAIL="${WATCHDOG_NOTIFY_FAIL:-}"
+  DNS_OVERRIDE="${WATCHDOG_DNS_OK:-}"
+fi
 
 setting() { # <name> <default>
   local name=$1 default=$2 val=""
@@ -84,6 +91,7 @@ STALL_MINUTES=$(setting WATCHDOG_STALL_MINUTES 10)
 WINDOW_HOURS=$(setting WATCHDOG_WINDOW_HOURS 24)
 DNS_HOST=$(setting WATCHDOG_DNS_HOST api.anthropic.com)
 TAIL_LINES=$(setting WATCHDOG_TAIL_LINES 300)
+TAIL_BYTES=$(setting WATCHDOG_TAIL_BYTES 2000000)
 LOG_MAX_LINES=$(setting WATCHDOG_LOG_MAX_LINES 500)
 JQ=$(setting WATCHDOG_JQ "$(command -v jq 2>/dev/null || true)")
 case $ROOT in /*) ;; *) ROOT="$PWD/$ROOT" ;; esac
@@ -105,7 +113,14 @@ previous_stall_keys() { # [file]: notified stall keys, all or of one file
   [ -r "$NOTIFIED" ] || return 0
   if [ $# -eq 0 ]; then grep '^stall|' "$NOTIFIED" || true; else grep -F -- "stall|$1|" "$NOTIFIED" || true; fi
 }
-save_keys() { printf '%s' "$saved_keys" >"$NOTIFIED.tmp" && mv "$NOTIFIED.tmp" "$NOTIFIED"; }
+save_keys() { # a lost state means duplicate notices, so a failed write is loud
+  if printf '%s' "$saved_keys" >"$NOTIFIED.tmp" 2>/dev/null && mv -f "$NOTIFIED.tmp" "$NOTIFIED" 2>/dev/null; then
+    return 0
+  fi
+  log "cannot save state file $NOTIFIED"
+  notify "Session watchdog" "watchdog cannot save its state in $STATE_DIR" || true
+  return 1
+}
 
 fail_loud() { # <reason>; notify once per failure state, log every run
   local key="fail|$1"
@@ -116,7 +131,7 @@ fail_loud() { # <reason>; notify once per failure state, log every run
 }
 
 problems=0
-for pair in "WATCHDOG_STALL_MINUTES=$STALL_MINUTES" "WATCHDOG_WINDOW_HOURS=$WINDOW_HOURS" "WATCHDOG_TAIL_LINES=$TAIL_LINES"; do
+for pair in "WATCHDOG_STALL_MINUTES=$STALL_MINUTES" "WATCHDOG_WINDOW_HOURS=$WINDOW_HOURS" "WATCHDOG_TAIL_LINES=$TAIL_LINES" "WATCHDOG_TAIL_BYTES=$TAIL_BYTES"; do
   case ${pair#*=} in
     '' | *[!0-9]* | 0) fail_loud "invalid setting ${pair%%=*}"; problems=1 ;;
   esac
@@ -128,11 +143,15 @@ fi
 if [ "$problems" -ne 0 ]; then
   # Could not look at the sessions: keep the stalls notified so far.
   while IFS= read -r key; do [ -n "$key" ] && keep_key "$key"; done <<<"$(previous_stall_keys)"
-  save_keys
+  save_keys || true
   exit 1
 fi
 
-if stat -f %m / >/dev/null 2>&1; then
+case $(stat -f %m / 2>/dev/null) in
+  '' | *[!0-9]*) bsd_stat=0 ;; # GNU stat -f means --file-system, not a number
+  *) bsd_stat=1 ;;
+esac
+if [ "$bsd_stat" = 1 ]; then
   file_mtime() { stat -f %m -- "$1"; }
 else
   file_mtime() { stat -c %Y -- "$1"; }
@@ -167,7 +186,9 @@ NAME_FILTER='
 
 last_entry() { # <file>: prints "status<TAB>timestamp", or nothing; non-zero if unreadable
   local f=$1 out
-  out=$(tail -n "$TAIL_LINES" -- "$f" | "$JQ" -R -r "$LAST_ENTRY_FILTER" 2>/dev/null) || return 1
+  # Bytes first: a single line with an embedded image can be megabytes. A line
+  # cut at the start of the byte window is dropped by fromjson?.
+  out=$(tail -c "$TAIL_BYTES" -- "$f" | tail -n "$TAIL_LINES" | "$JQ" -R -r "$LAST_ENTRY_FILTER" 2>/dev/null) || return 1
   if [ -z "$out" ]; then
     # Long non-conversation tail: look at the whole file.
     out=$(grep -F -e '"type":"user"' -e '"type":"assistant"' -- "$f" 2>/dev/null \
@@ -239,5 +260,5 @@ if [ -n "$new_keys" ]; then
   fi
 fi
 
-save_keys
+save_keys || exit 1
 exit 0

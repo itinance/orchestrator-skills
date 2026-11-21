@@ -78,13 +78,26 @@ WATCHDOG_TRANSCRIPT_ROOT=~/.claude/projects
 WATCHDOG_WINDOW_HOURS=24
 WATCHDOG_DNS_HOST=api.anthropic.com
 WATCHDOG_TAIL_LINES=300
+WATCHDOG_TAIL_BYTES=2000000
 WATCHDOG_LOG_MAX_LINES=500
 EOF
     fi
     plist >"$PLIST"
     /usr/bin/plutil -lint "$PLIST" >/dev/null
+    # bootout is asynchronous: wait until the old agent is gone, then load,
+    # with one retry. A failed load says so, and the plist stays for a manual start.
     "$LAUNCHCTL" bootout "$DOMAIN/$LABEL" 2>/dev/null || true
-    "$LAUNCHCTL" bootstrap "$DOMAIN" "$PLIST"
+    for _ in 1 2 3 4 5 6 7 8 9 10; do
+      "$LAUNCHCTL" print "$DOMAIN/$LABEL" >/dev/null 2>&1 || break
+      sleep 0.5
+    done
+    if ! "$LAUNCHCTL" bootstrap "$DOMAIN" "$PLIST" 2>/dev/null; then
+      sleep 1
+      "$LAUNCHCTL" bootstrap "$DOMAIN" "$PLIST" || {
+        echo "Could not load the agent. Start it with: launchctl bootstrap $DOMAIN $PLIST" >&2
+        exit 1
+      }
+    fi
     echo "Installed $LABEL. It runs every $INTERVAL minutes."
     echo "Settings: $CONFIG   Heartbeat: $STATE_DIR/heartbeat   Log: $STATE_DIR/watchdog.log"
     echo "After a change of WATCHDOG_INTERVAL_MINUTES, run this again."

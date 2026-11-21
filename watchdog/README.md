@@ -23,11 +23,18 @@ Transcripts hold client data. The script never prints, logs or copies their cont
 | `type` | `user` / `assistant` entries are the conversation. Everything else (`system`, `queue-operation`, `last-prompt`, …) is skipped. |
 | `isSidechain` | Subagent entries are skipped. |
 | `isApiErrorMessage` | `true` marks an API error entry (an `assistant` entry written by Claude Code itself). |
-| `timestamp` | Time of the error, for "since 09:32", and the key for "one notice per stall". |
-| `apiError`, `error` | Kept only when they are a short lowercase code (for example `connection_failed`, `server_error`). |
-| `agentName` (`agent-name` entry), `customTitle` (`custom-title` entry) | The session name in the notice. Without one: `session <first 8 characters of the session id>`. `ai-title` is never used, because it summarizes the conversation. |
+| `timestamp` | Time of the error, for "since 09:32", and the key for "one notice per stall". Used only if it looks like an ISO 8601 time (`^[0-9T:.Z-]{20,30}$`), otherwise the file time is used. |
+| `agentName` (`agent-name` entry), `customTitle` (`custom-title` entry) | The session name in the notice, only if it is a string. Control characters are dropped, the name is cut to 40 characters. Without one: `session <first 8 characters of the session id>`. `ai-title` is never used, because it summarizes the conversation. |
 
-Checked against real transcripts: after an API error, Claude Code often writes more entries (`system/turn_duration`, `system/informational`, `queue-operation`, `last-prompt`, `custom-title`, …). That is why the watchdog looks at the last user or assistant entry, not at the last line.
+Only the validated timestamp and the session name leave the transcript.
+
+Checked against real transcripts: after an API error, Claude Code often writes more entries (`system/turn_duration`, `system/informational`, `queue-operation`, `last-prompt`, `custom-title`, …). That is why the watchdog looks at the last user or assistant entry, not at the last line. If the last 300 lines hold no such entry, it reads the whole file. A transcript without any conversation entry gets a loud notice.
+
+## One notice per stall
+
+A stall is stored as notified only after its notice was shown, so a failed notice is retried on the next run. A notified stall stays stored while its transcript still ends on the same error, also when the file changes without a new message (for example a rename on resume) or when one run could not read it. It drops out when the session is healthy again, the file is gone, or it is outside the window.
+
+`display notification` can exit without an error even when notifications are turned off for the app that runs it. Check *System Settings → Notifications* once after the install. The heartbeat and the log show that the watchdog runs, not that you see its notices.
 
 ## Install
 
@@ -54,16 +61,19 @@ In `~/.claude/session-watchdog/config` (`KEY=VALUE`, parsed, never sourced). An 
 | `WATCHDOG_WINDOW_HOURS` | 24 | script |
 | `WATCHDOG_DNS_HOST` | `api.anthropic.com` | script |
 | `WATCHDOG_TAIL_LINES` | 300 | script |
+| `WATCHDOG_LOG_MAX_LINES` | 500 | script (cuts `watchdog.log` to this length) |
 | `WATCHDOG_STATE_DIR` | `~/.claude/session-watchdog` | both (environment only) |
 
 ## Files in the state folder
+
+The folder is private to the user (mode 700).
 
 | File | Content |
 |---|---|
 | `heartbeat` | UTC time of the last run |
 | `notified` | Keys of the stalls and failures already notified (transcript path and error time). No content. |
 | `config` | Settings |
-| `watchdog.log` | The watchdog's own failure messages |
+| `watchdog.log` | The watchdog's own failure messages, capped at `WATCHDOG_LOG_MAX_LINES` |
 
 ## Tests
 
@@ -71,7 +81,7 @@ In `~/.claude/session-watchdog/config` (`KEY=VALUE`, parsed, never sourced). An 
 bash tests/watchdog.test.sh
 ```
 
-Synthetic fixture tails in `tests/fixtures/watchdog/` for stalled, healthy, recovered, re-stalled, network down, subagent error, broken last line and missing name. Their content fields hold a canary string, and the tests check that it never appears in a notice, log or state file.
+Synthetic fixture tails in `tests/fixtures/watchdog/` for stalled, healthy, recovered, re-stalled, network down, subagent error before and after the main error, broken last line, missing and crafted names, an invalid timestamp and a transcript without conversation. The tests also cover a failed notice, a long non-conversation tail, an mtime refresh, a failed run between two runs, and the installer with a fake `launchctl`. Their content fields hold a canary string, and the tests check that it never appears in a notice, log or state file.
 
 ## Known limits
 

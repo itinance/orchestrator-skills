@@ -16,6 +16,7 @@ STATE_DIR="${WATCHDOG_STATE_DIR:-$HOME/.claude/session-watchdog}"
 CONFIG="$STATE_DIR/config"
 BIN="$STATE_DIR/bin/session-watchdog.sh"
 PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
+LAUNCHCTL="${WATCHDOG_LAUNCHCTL:-/bin/launchctl}" # tests replace it
 DOMAIN="gui/$(id -u)"
 MODE="${1:-install}"
 
@@ -28,10 +29,12 @@ setting() { # <name> <default>
 
 xml() { sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' <<<"$1"; }
 
-INTERVAL=$(setting WATCHDOG_INTERVAL_MINUTES 5)
-case $INTERVAL in '' | *[!0-9]* | 0) echo "Invalid WATCHDOG_INTERVAL_MINUTES: $INTERVAL" >&2; exit 1 ;; esac
-JQ=$(command -v jq || true)
-case $JQ in /*) ;; *) echo "jq not found. Install it first (for example: brew install jq), then run this again." >&2; exit 1 ;; esac
+check_install_settings() { # install and print only; uninstall must work without them
+  INTERVAL=$(setting WATCHDOG_INTERVAL_MINUTES 5)
+  case $INTERVAL in '' | *[!0-9]* | 0) echo "Invalid WATCHDOG_INTERVAL_MINUTES: $INTERVAL" >&2; exit 1 ;; esac
+  JQ=$(command -v jq || true)
+  case $JQ in /*) ;; *) echo "jq not found. Install it first (for example: brew install jq), then run this again." >&2; exit 1 ;; esac
+}
 
 plist() {
   cat <<EOF
@@ -57,10 +60,13 @@ EOF
 
 case $MODE in
   print)
+    check_install_settings
     plist
     ;;
   install)
+    check_install_settings
     mkdir -p "$STATE_DIR/bin" "$HOME/Library/LaunchAgents"
+    chmod 700 "$STATE_DIR"
     install -m 755 "$HERE/session-watchdog.sh" "$BIN"
     if [ ! -e "$CONFIG" ]; then
       cat >"$CONFIG" <<'EOF'
@@ -71,18 +77,20 @@ WATCHDOG_HEARTBEAT_MAX_AGE_MINUTES=15
 WATCHDOG_TRANSCRIPT_ROOT=~/.claude/projects
 WATCHDOG_WINDOW_HOURS=24
 WATCHDOG_DNS_HOST=api.anthropic.com
+WATCHDOG_TAIL_LINES=300
+WATCHDOG_LOG_MAX_LINES=500
 EOF
     fi
     plist >"$PLIST"
     /usr/bin/plutil -lint "$PLIST" >/dev/null
-    launchctl bootout "$DOMAIN/$LABEL" 2>/dev/null || true
-    launchctl bootstrap "$DOMAIN" "$PLIST"
+    "$LAUNCHCTL" bootout "$DOMAIN/$LABEL" 2>/dev/null || true
+    "$LAUNCHCTL" bootstrap "$DOMAIN" "$PLIST"
     echo "Installed $LABEL. It runs every $INTERVAL minutes."
     echo "Settings: $CONFIG   Heartbeat: $STATE_DIR/heartbeat   Log: $STATE_DIR/watchdog.log"
     echo "After a change of WATCHDOG_INTERVAL_MINUTES, run this again."
     ;;
   uninstall)
-    launchctl bootout "$DOMAIN/$LABEL" 2>/dev/null || true
+    "$LAUNCHCTL" bootout "$DOMAIN/$LABEL" 2>/dev/null || true
     rm -f "$PLIST"
     echo "Removed $LABEL. The state folder $STATE_DIR stays."
     ;;

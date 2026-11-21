@@ -172,6 +172,97 @@ new_sandbox heartbeat
 run
 if grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$' "$STATE/heartbeat"; then ok "heartbeat: UTC timestamp only"; else not_ok "heartbeat: UTC timestamp only" "$(cat "$STATE/heartbeat")"; fi
 
+# --- review fixes
+
+# S1: a notice that fails is not stored, and the next run retries it
+new_sandbox retry
+place stalled 11111111-1111 20
+run WATCHDOG_NOTIFY_FAIL=1
+expect_notices "failed notice: nothing shown" 0
+if grep -q '^stall|' "$STATE/notified"; then not_ok "failed notice: stall not stored as notified"; else ok "failed notice: stall not stored as notified"; fi
+run
+expect_notices "failed notice: retried on the next run" 1
+
+# S2: more than 300 lines of non-conversation tail after the error
+new_sandbox longtail
+cp "$FIX/stalled.jsonl" "$PROJ/22222222-1111.jsonl"
+i=0
+while [ $i -lt 350 ]; do
+  printf '{"type":"system","subtype":"informational","content":"%s","timestamp":"2026-11-21T09:40:00.000Z"}\n' "$CANARY" >>"$PROJ/22222222-1111.jsonl"
+  i=$((i + 1))
+done
+touch -t "$(stamp $(($(date +%s) - 20 * 60)))" "$PROJ/22222222-1111.jsonl"
+run
+expect_last "long non-conversation tail: whole file is read, stall found" $'Claude sessions stalled\tlane6: API error since 09:32'
+expect_no_canary "long tail: no content in any output"
+
+# S2: a transcript without any conversation entry is loud, not skipped
+new_sandbox noconv
+place no-conversation 33333333-1111 20
+run
+expect_last "no conversation entry: loud notice" $'Session watchdog\twatchdog cannot read sessions: 1 transcripts without a conversation entry'
+
+# S3: an mtime refresh (for example a rename on resume) does not re-send the stall
+new_sandbox refresh
+place stalled 44444444-1111 20
+run
+printf '{"type":"custom-title","customTitle":"lane6","sessionId":"s"}\n' >>"$PROJ/44444444-1111.jsonl"
+run
+touch -t "$(stamp $(($(date +%s) - 20 * 60)))" "$PROJ/44444444-1111.jsonl"
+run
+expect_notices "mtime refresh: the same stall is not sent again" 1
+
+# S3: a run that cannot look at the sessions keeps the stalls notified so far
+new_sandbox earlyexit
+place stalled 55555555-1111 20
+run
+run WATCHDOG_JQ=/nonexistent/jq
+run
+expect_notices "failed run in between: the same stall is not sent again" 2
+if grep -c 'Claude sessions stalled' "$NOTICES" | grep -qx 1; then ok "failed run in between: one stall notice, one failure notice"; else not_ok "failed run in between: one stall notice, one failure notice" "$(cat "$NOTICES")"; fi
+
+# Main error followed by subagent lines is still a stall
+new_sandbox sidechainafter
+place error-then-sidechain 66666666-1111 20
+run
+expect_last "main error, then subagent lines: stall" $'Claude sessions stalled\tlane7: API error since 09:32'
+
+# S5: crafted name, non-string names, invalid timestamp
+new_sandbox crafted
+place crafted-name 77777777-1111 20
+run
+expect_last "crafted name: kept as text, leading dash padded, non-string names ignored" $'Claude sessions stalled\t -rf "q" back\\slash: API error since 09:32'
+expect_no_canary "crafted name: no content in any output"
+new_sandbox badts
+place bad-timestamp 88888888-1111 20
+run
+if last_notice | grep -q $'^Claude sessions stalled\tlane5: API error since [0-9][0-9]:[0-9][0-9]$'; then ok "invalid timestamp: keyed on the file time"; else not_ok "invalid timestamp: keyed on the file time" "$(last_notice)"; fi
+expect_no_canary "invalid timestamp: not copied anywhere"
+
+# C4: state folder private, log capped
+new_sandbox c4
+seq 1 600 | sed 's/^/old log line /' >"$STATE/watchdog.log"
+chmod 755 "$STATE"
+run WATCHDOG_LOG_MAX_LINES=100
+[ "$(stat -f %Lp "$STATE" 2>/dev/null || stat -c %a "$STATE")" = 700 ] && ok "state folder: mode 700" || not_ok "state folder: mode 700"
+[ "$(wc -l <"$STATE/watchdog.log")" -le 100 ] && ok "watchdog.log: capped" || not_ok "watchdog.log: capped" "$(wc -l <"$STATE/watchdog.log") lines"
+
+# S4: uninstall without jq and with a bad interval; install with a fake launchctl
+new_sandbox installer
+FAKE="$SB/launchctl"
+printf '#!/bin/bash\necho "$@" >>"$0.calls"\n' >"$FAKE"
+chmod +x "$FAKE"
+mkdir -p "$SB/home/Library/LaunchAgents"
+env -i PATH=/usr/bin:/bin HOME="$SB/home" WATCHDOG_STATE_DIR="$STATE" WATCHDOG_LAUNCHCTL="$FAKE" WATCHDOG_INTERVAL_MINUTES=abc \
+  bash "$INSTALL" uninstall >"$SB/stdout" 2>"$SB/stderr"
+[ $? = 0 ] && ok "uninstall: works without jq and with a bad interval" || not_ok "uninstall: works without jq and with a bad interval" "$(cat "$SB/stderr")"
+env HOME="$SB/home" WATCHDOG_STATE_DIR="$STATE" WATCHDOG_LAUNCHCTL="$FAKE" bash "$INSTALL" install >"$SB/stdout" 2>"$SB/stderr"
+if [ -s "$SB/home/Library/LaunchAgents/orchestrator-skills.session-watchdog.plist" ] && grep -q '^bootstrap ' "$FAKE.calls" && [ -x "$STATE/bin/session-watchdog.sh" ] && [ -s "$STATE/config" ]; then
+  ok "install: plist, script copy, config, bootstrap call"
+else
+  not_ok "install: plist, script copy, config, bootstrap call" "$(cat "$SB/stderr")"
+fi
+
 # --- installer renders a valid launchd plist
 if [ -x /usr/bin/plutil ]; then
   new_sandbox install

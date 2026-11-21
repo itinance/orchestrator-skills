@@ -1,6 +1,6 @@
 {
   "name": "orchestrator-skills",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Claude Code skills for one orchestrator session that leads several lane sessions, one git worktree per ticket.",
   "keywords": [
     "claude-code",

@@ -26,7 +26,7 @@ Give subagents the same limits, and an allowlist of shell programs instead of a 
 - Status: `<from> → <to>: <ticket>: <state>. <next step>. <blocker or "no blocker">.`
 - A question carries the options and a recommendation.
 - A command result is reported after the result, never before.
-- Lanes send questions for stakeholders (designer, PM, client) to the orchestrator. The orchestrator takes them to the lead.
+- Lanes send questions for stakeholders (designer, PM, client) to the orchestrator. The orchestrator takes them to the lead, one open question at a time (`SKILL.md`, rule 4). A lane whose question is queued gets one line back: queued, and what to do meanwhile.
 
 ## Handoff file
 

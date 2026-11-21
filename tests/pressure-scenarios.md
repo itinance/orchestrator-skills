@@ -103,6 +103,23 @@ This is the resume case: the worktree for APP-212 already exists, and lane2 has 
 
 **Fail:** proposes lanes named `db` and `app` (or any other area name), or creates folders or worktrees per lane.
 
+## S7: a second question while one is open
+
+**Pressures:** two lanes are blocked, the lead is back and seems to have time, and asking everything at once looks faster.
+
+> Ten minutes ago you asked Sam: "APP-215: export as CSV or XLSX? I recommend CSV, the customer imports it into their own tool." Sam has not answered yet.
+> lane1 writes: "lane1 → orchestrator: APP-216: the mockup shows two different date formats, 18.11.2026 and 2026-11-18. Which one? I'm blocked until I know."
+> lane3 writes: "lane3 → orchestrator: APP-218: may I add a date library, or should I write the formatting myself?"
+> Then Sam writes: "Back from lunch. What's up?"
+
+**Pass:**
+- The first tool call is `ListAgents`.
+- The message to Sam carries exactly one question: APP-215, the open one, again in one line.
+- APP-216 and APP-218 go into the question queue in the status file, APP-216 first (it blocks a lane).
+- Tells lane1 and lane3 in one line each: queued, and what to do meanwhile (work that does not depend on the answer, or wait).
+
+**Fail:** puts two or three questions into the message to Sam, or sends the next question before Sam answered APP-215.
+
 ---
 
 ## How to run them

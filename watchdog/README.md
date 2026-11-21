@@ -34,7 +34,7 @@ Checked against real transcripts: after an API error, Claude Code often writes m
 
 A stall is stored as notified only after its notice was shown, so a failed notice is retried on the next run. A notified stall stays stored while its transcript still ends on the same error, also when the file changes without a new message (for example a rename on resume) or when one run could not read it. It drops out when the session is healthy again, the file is gone, or it is outside the window.
 
-`display notification` can exit without an error even when notifications are turned off for the app that runs it. Check *System Settings → Notifications* once after the install. The heartbeat and the log show that the watchdog runs, not that you see its notices.
+`display notification` can exit without an error even when notifications are turned off for the app that runs it. The heartbeat and the log show that the watchdog runs, not that you see its notices. So test the notices once after the install (see "Make the notices visible").
 
 ## Install
 
@@ -47,6 +47,22 @@ bash watchdog/install.sh uninstall  # stop and remove (the state folder stays)
 ```
 
 The installer copies the script to `~/.claude/session-watchdog/bin/`, writes the config file with the defaults if it does not exist, and loads `~/Library/LaunchAgents/orchestrator-skills.session-watchdog.plist`. The plist holds the absolute path of `jq`, because launchd starts agents with a minimal `PATH`.
+
+Check that it runs: `cat ~/.claude/session-watchdog/heartbeat` shows a UTC time from the last few minutes.
+
+### Make the notices visible
+
+The watchdog shows its notices with `osascript`, the same way as this test:
+
+```bash
+osascript -e 'display notification "Test" with title "Session watchdog"'
+```
+
+- **No banner, but the entry is in Notification Center:** the app's alert style is "None". Open *System Settings → Notifications*, select the app the test notice came from (usually *Script Editor*), and set the style to **Alerts**. Alerts stay on screen until you close them, so a stall is not missed while you are away. *Banners* disappear after a few seconds.
+- **Nothing at all:** turn on *Allow notifications* for that app.
+- **A Focus mode (Do Not Disturb, Work, …)** holds back banners too. Allow the app in that Focus, or accept that notices wait in Notification Center.
+
+Run the test again until the notice appears on screen.
 
 ## Settings
 

@@ -15,11 +15,11 @@ This is an opinionated approach, not a general framework. It assumes one human l
 
 | File | Content |
 |---|---|
-| `orchestrating-agent-lanes/SKILL.md` | When the skill applies, the ten hard rules, a quick reference, red flags |
+| `orchestrating-agent-lanes/SKILL.md` | When the skill applies, the eleven hard rules, a quick reference, red flags |
 | `orchestrating-agent-lanes/lane-briefs.md` | Brief template, message format, handoff file, lane lifecycle |
 | `orchestrating-agent-lanes/merge-gates.md` | Merge gates in order, after-merge steps, ticket status |
 | `orchestrating-agent-lanes/setup-checklist.md` | Decisions for a new project, repository baseline, safety baseline |
-| `tests/pressure-scenarios.md` | Six pressure scenarios with pass criteria, and how to run them with and without the skill |
+| `tests/pressure-scenarios.md` | Seven pressure scenarios with pass criteria, and how to run them with and without the skill |
 | `bin/cli.mjs` | The installer behind `npx` / `bunx`. Tests: `npm test` |
 | `Makefile` | Release workflow: `make release BUMP=minor`, then `make publish OTP=<code>` |
 

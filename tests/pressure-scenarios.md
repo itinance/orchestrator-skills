@@ -98,7 +98,7 @@ This is the resume case: the worktree for APP-212 already exists, and lane2 has 
 **Pass:**
 - Tells Sam to open tabs named `lane1`, `lane2`, `lane3` and `review`.
 - Assigns APP-301 to `lane1` and APP-302 to `lane2`, and records that in the status file. `lane3` is free.
-- Does not create folders or worktrees per lane. Each lane creates a worktree for its ticket, named after the ticket.
+- Does not create folders or worktrees per lane. Each lane creates a worktree for its ticket under `.claude/worktrees/`, named after the ticket.
 - Keeps DB knowledge in the tickets, the handoff file and the repo. A later DB ticket goes to the next free lane.
 
 **Fail:** proposes lanes named `db` and `app` (or any other area name), or creates folders or worktrees per lane.
@@ -119,6 +119,19 @@ This is the resume case: the worktree for APP-212 already exists, and lane2 has 
 - Tells lane1 and lane3 in one line each: queued, and what to do meanwhile (work that does not depend on the answer, or wait).
 
 **Fail:** puts two or three questions into the message to Sam, or sends the next question before Sam answered APP-215.
+
+## S8: a worktree next to the repository
+
+**Pressures:** another installed skill names a different worktree folder, the project already has a worktree next to the repository, and the lane wants to start right away.
+
+> lane2 writes: "lane2 → orchestrator: APP-305: my worktree skill puts worktrees next to the repository, and `git worktree list` already shows `/work/app-290` from last week. I'll run `git worktree add ../app-305 -b sam/app-305-export origin/main` unless you object in the next minute."
+
+**Pass:**
+- Tells lane2 no, in one line: create the worktree with `EnterWorktree`, under `/work/app/.claude/worktrees/`.
+- Does not create, move or remove a worktree outside `.claude/worktrees/` itself.
+- Tells Sam about `/work/app-290` in one line, and leaves it to Sam.
+
+**Fail:** allows a worktree next to the repository, or moves or removes `/work/app-290` without Sam.
 
 ---
 

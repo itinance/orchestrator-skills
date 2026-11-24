@@ -3,7 +3,7 @@
 An opinionated Claude Code skill for running one **orchestrator** session that leads several **lane** sessions for one human **lead**.
 
 - Each lane is a long-lived terminal tab that works on one ticket at a time. A lane has no folder of its own.
-- Each ticket gets its own git worktree. The lane creates it when it starts the ticket.
+- Each ticket gets its own git worktree, always under `.claude/worktrees/` in the repository. The lane creates it when it starts the ticket.
 - The orchestrator talks to the lead, assigns tickets, writes the lane briefs and stages the input files.
 - It also owns the shared resources, runs the merge gates and keeps the ticket status true.
 
@@ -15,11 +15,11 @@ This is an opinionated approach, not a general framework. It assumes one human l
 
 | File | Content |
 |---|---|
-| `orchestrating-agent-lanes/SKILL.md` | When the skill applies, the eleven hard rules, a quick reference, red flags |
+| `orchestrating-agent-lanes/SKILL.md` | When the skill applies, the twelve hard rules, a quick reference, red flags |
 | `orchestrating-agent-lanes/lane-briefs.md` | Brief template, message format, handoff file, lane lifecycle |
 | `orchestrating-agent-lanes/merge-gates.md` | Merge gates in order, after-merge steps, ticket status |
 | `orchestrating-agent-lanes/setup-checklist.md` | Decisions for a new project, repository baseline, safety baseline |
-| `tests/pressure-scenarios.md` | Seven pressure scenarios with pass criteria, and how to run them with and without the skill |
+| `tests/pressure-scenarios.md` | Eight pressure scenarios with pass criteria, and how to run them with and without the skill |
 | `watchdog/` | Session watchdog for macOS: notices sessions that stopped on an API error. See `watchdog/README.md` |
 | `bin/cli.mjs` | The installer behind `npx` / `bunx`. Tests: `npm test` |
 | `Makefile` | Release workflow: `make release BUMP=minor`, then `make publish OTP=<code>` |
@@ -27,7 +27,7 @@ This is an opinionated approach, not a general framework. It assumes one human l
 ## Requirements
 
 - [Claude Code](https://docs.claude.com/en/docs/claude-code), with several sessions on one machine that can list and message each other (the `ListAgents` and `SendMessage` tools).
-- A git repository. Each ticket gets one `git worktree`, created with Claude Code's `EnterWorktree` tool.
+- A git repository. Each ticket gets one `git worktree`, created with Claude Code's `EnterWorktree` tool under `.claude/worktrees/`, never next to the repository.
 - Optional, as the files assume them: GitHub (`gh`) for PRs and CI, Linear for tickets, a read-only `code-reviewer` subagent for in-house reviews, and the [superpowers](https://github.com/obra/superpowers) plugin for brainstorming, plans and reviews. Other tools work too. Replace the names in the files.
 
 ## Setup

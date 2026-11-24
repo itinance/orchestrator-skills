@@ -7,7 +7,7 @@ The limits come first, in bold, and say that a breach stops the task. Limits tha
 ```
 <orchestrator> → <lane>: <ticket id> <title>
 LIMITS (a breach stops the task):
-- Worktree: <new: create one for this ticket with EnterWorktree from a freshly fetched origin/main, report its path, then wait for my inputs | resume: <existing worktree path>>. Work only in that worktree.
+- Worktree: <new: create one for this ticket with EnterWorktree from a freshly fetched origin/main. It goes under .claude/worktrees/, never next to the repository. Report its path, then wait for my inputs | resume: <existing worktree path>>. Work only in that worktree.
 - <allowed shell programs, or the forbidden host programs>
 - On the first permission prompt, denial or hook refusal: stop and tell me in one line. Do not try another command.
 - Only origin/main and your own worktree count as truth. Never read another session's branch or worktree.
@@ -38,7 +38,7 @@ When a lane stops for the day or hands over, it writes `.scratch/handoff.md` in 
 1. Pick the lowest-numbered free lane (`SKILL.md`, Lanes, names and worktrees). Record lane and ticket in the status file.
 2. Read the ticket fully. Set it to In Progress. Collect the inputs in your own `.scratch/`.
 3. Send the brief. It names the ticket, not a path that does not exist yet.
-4. The lane fetches `origin/main` and creates the worktree from it with `EnterWorktree`. It names the branch after the ticket. Never stack on an unmerged branch. If the work depends on one, the lead merges it first.
+4. The lane fetches `origin/main` and creates the worktree from it with `EnterWorktree`, under `.claude/worktrees/` (`SKILL.md`, rule 12). It names the branch after the ticket. Never stack on an unmerged branch. If the work depends on one, the lead merges it first.
 5. In the new worktree, the lane runs install and sets up the git hooks. Without them the first commit fails.
 6. The lane reports the worktree path. Copy the inputs into its `.scratch/` and send the paths.
 7. Non-trivial ticket: plan first, then your OK.

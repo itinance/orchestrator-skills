@@ -18,10 +18,11 @@
 ## Repository baseline
 
 - `.scratch/` in `.gitignore`. MR/PR descriptions, review diffs and staged inputs go there.
+- `.claude/worktrees/` in `.gitignore`. Every worktree lives there (`SKILL.md`, rule 12).
 - `.claude/settings.json` (committed): the commands lanes need every day, so they get no prompts: tests, lint, format, `git add/commit/push/fetch`, `gh pr`, `gh run`, `gh api`, the project's make targets. No destructive grants.
 - `.claude/settings.local.json` (gitignored): personal and one-off grants. Never commit it.
 - `.claude/agents/code-reviewer.md`: read-only reviewer (Read, Grep, Glob), input a diff path and a focus, output findings with `file:line`, a failure scenario and a severity.
-- A PreToolUse isolation hook that refuses commands aimed at another worktree (for example `git -C <other worktree>`). Without it, "read only inside your own worktree" is discipline only.
+- A PreToolUse isolation hook that refuses commands aimed at another worktree (for example `git -C <other worktree>`), and `git worktree add` with a path outside `.claude/worktrees/`. Without it, "read only inside your own worktree" is discipline only.
 - Git hooks: pre-commit (format, lint), pre-push (tests of the changed area; a path nobody mapped means more checks, never none).
 - CI: fast jobs on every PR, heavy jobs only on PRs that are ready for review, and branch protection with required checks. Test that a draft PR cannot merge: a skipped job passes a required check by default.
 - Linear's GitHub integration on, and its "Done on merge" behavior known.

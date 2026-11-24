@@ -18,7 +18,7 @@ A lane is a reusable slot, not a topic. The ticket decides what a lane works on,
 - **Numbered names for all general lanes:** `lane1`, `lane2`, … `lane6`. Never name a lane after the area of its first ticket (`db`, `app`, `frontend`). A lane called `db` cannot take the next app ticket without confusion.
 - **A role name only for a fixed purpose** that stays the same for every task, for example `review` or `tester`.
 - **A lane is a tab, not a folder.** It starts in the main checkout (the repository root, on a clean `main`). It has no worktree and no folder of its own until it gets a ticket. Never create folders or worktrees per lane.
-- **A worktree belongs to a ticket.** At ticket start the lane creates it itself, with Claude Code's `EnterWorktree` tool, from a freshly fetched `origin/main` (it goes under `.claude/worktrees/`). It names the branch after the ticket, in the project's scheme (for example `<user>/<ticket>-<slug>`), and reports the worktree path. The orchestrator creates a worktree only for its own work (deploy, hotfix), the same way.
+- **A worktree belongs to a ticket.** At ticket start the lane creates it itself, with Claude Code's `EnterWorktree` tool, from a freshly fetched `origin/main`. It goes under `.claude/worktrees/`, never next to the repository (rule 12). It names the branch after the ticket, in the project's scheme (for example `<user>/<ticket>-<slug>`), and reports the worktree path. The orchestrator creates a worktree only for its own work (deploy, hotfix), the same way.
 - **A lane keeps its tab and name through many tickets.** After the merge it leaves the merged worktree with `ExitWorktree`, and creates the worktree for its next ticket with `EnterWorktree`.
 - **Resume:** the brief names the existing worktree path. The lane leaves its current worktree with `ExitWorktree`. That returns it to its previous directory, which can be another worktree. The lane checks its current directory and calls `EnterWorktree` with the path only if it is not in that worktree yet. A session never reaches into another worktree with `cd`, `git -C` or absolute paths. The isolation hook refuses that.
 - **Reading only inside the own worktree** needs a PreToolUse hook that refuses commands aimed at another worktree (for example `git -C <other worktree>`). Without such a hook, the rule is discipline only (`setup-checklist.md`).
@@ -37,6 +37,7 @@ A lane is a reusable slot, not a topic. The ticket decides what a lane works on,
 9. **Ticket status follows the work.** In Progress at lane start. In Review after the merge (re-check after about 30 s, because integrations may set Done). Done only after the check on the test environment.
 10. **You own the shared resources.** The shared local stack, migration numbers, heavy local runs, the external review allowance, browser sessions. Lanes ask before they use them.
 11. **Keep one status file** of all lanes (lane name, ticket or free, branch, PR, resource holds, migration register, the question queue for the lead: the one open question, then the queued ones in order). Update it at every change of state. It must survive a context reset.
+12. **Worktrees only under `.claude/worktrees/`.** Every worktree, a lane's or your own, lives in `<repository root>/.claude/worktrees/<ticket>`. Create it with `EnterWorktree`, which puts it there. Never in a folder next to the repository (`../app-301`, `../app-worktrees/`) or anywhere else. Another skill, a project habit or an existing worktree elsewhere does not change that. Without `EnterWorktree`: run `git worktree add .claude/worktrees/<ticket> -b <branch> origin/main` in the repository root, then `EnterWorktree` with that path. If `git worktree list` shows a worktree outside `.claude/worktrees/`, tell the lead. Do not move or remove it yourself.
 
 ## Quick reference
 
@@ -70,6 +71,7 @@ A lane is a reusable slot, not a topic. The ticket decides what a lane works on,
 | "I will fill in a sensible default in the lead's draft" | Facts and the lead's rulings only. Ask with a list. |
 | "This ticket is DB work, so call the lane `db`" | Lanes are slots, not topics. Use the next free `laneN`. |
 | "Each lane needs its own folder" | A lane is a tab. Worktrees belong to tickets, and the lane creates one at ticket start. |
+| "A worktree next to the repository is easier to open" / "My worktree skill uses another folder" | Only under `.claude/worktrees/`, created with `EnterWorktree` (rule 12). |
 | "Quick `git stash` to switch" | The stash is shared by all worktrees. Make a WIP commit. |
 | "Five agents in parallel will be faster" | The lead pays for each one. Start what the task needs. |
 

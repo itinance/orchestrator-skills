@@ -9,6 +9,8 @@ The limits come first, in bold, and say that a breach stops the task. Limits tha
 LIMITS (a breach stops the task):
 - Worktree: <new: create one for this ticket with EnterWorktree from a freshly fetched origin/main, report its path, then wait for my inputs | resume: <existing worktree path>>. Work only in that worktree.
 - <allowed shell programs, or the forbidden host programs>
+- <if the project forbids host interpreters (sed, awk, python …):> Read files only with the Read tool (offset/limit) or with grep, head, tail, cut. No interpreter anywhere in a command, also not as a dead pipe stage (`sed -n … | head -0`). The hook refuses that too, and every refusal stops the task.
+- <if the session is worktree-isolated:> Keep git calls single and plain: no `;`, no pipes, no loops around git. Compound forms are refused as too complex to verify.
 - On the first permission prompt, denial or hook refusal: stop and tell me in one line. Do not try another command.
 - Only origin/main and your own worktree count as truth. Never read another session's branch or worktree.
 Goal: <one or two sentences>
@@ -18,6 +20,8 @@ Scope: <in>. Out of scope: <out>
 Done when: <checks>
 First deliverable: <plan to me | draft PR>. No code before my OK on the plan.
 ```
+
+Lines that start with `<if …:>` go into the brief only when the condition holds for the project. Leave them out otherwise.
 
 Give subagents the same limits, and an allowlist of shell programs instead of a blocklist.
 
